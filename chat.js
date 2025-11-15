@@ -42,6 +42,10 @@ let isTypingLocal = false; // local state if user is typing
 // Incoming message audio (expects `newinchat.mp3` at app root). Preload for immediate play.
 let incomingAudio = null;
 
+// VAPID public key for Push API (provided by user)
+// Generated externally. This public key pairs with the server private key below (kept secret server-side).
+const VAPID_PUBLIC_KEY = 'BOvlFaMCX3DrMrF0KnoafL8ZcEhSxvfCk_lrlIHG8OsDv2K5VKHs7G9XQhZx0mhtMI2gkGogwzbMbiT0UnDL3LI'; // base64-url string
+
 // Notification sound settings are persisted in localStorage under:
 // - 'notifSoundChoice' => 'mute' | 'default' | 'custom'
 // - 'notifSoundCustom' => data URL of chosen custom audio (optional)
@@ -232,6 +236,156 @@ function setupNotificationSettingsUI() {
         } else {
             permissionBtn.style.display = 'none';
         }
+    });
+
+    // Push subscription controls (background notifications when app closed)
+    // Add a checkbox and subscribe/unsubscribe button
+    let pushControlRow = document.createElement('div');
+    pushControlRow.style.marginTop = '10px';
+    pushControlRow.style.display = 'flex';
+    pushControlRow.style.gap = '8px';
+    pushControlRow.style.alignItems = 'center';
+
+    const pushLabel = document.createElement('label');
+    pushLabel.style.display = 'flex';
+    pushLabel.style.alignItems = 'center';
+    pushLabel.style.gap = '8px';
+    pushLabel.style.cursor = 'pointer';
+    pushLabel.innerHTML = '<input type="checkbox" id="notifPushToggle"> <div style="display:flex; flex-direction:column;"><div style="font-weight:700;">Background push (works when app closed)</div><div style="font-size:0.85rem; color:#5b6470;">Requires a server to send push messages (VAPID)</div></div>';
+    pushControlRow.appendChild(pushLabel);
+
+    const pushBtn = document.createElement('button');
+    pushBtn.className = 'btn-settings';
+    pushBtn.id = 'notifPushBtn';
+    pushBtn.textContent = 'Subscribe';
+    pushControlRow.appendChild(pushBtn);
+
+    wrapper.appendChild(pushControlRow);
+
+    const pushToggle = wrapper.querySelector('#notifPushToggle');
+
+    // Helper: convert base64 public key to Uint8Array
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // Save subscription to Firebase under users/<uid>/pushSubscription
+    async function saveSubscriptionToDb(sub) {
+        if (!currentUser || !sub) return;
+        try {
+            const subJson = sub.toJSON ? sub.toJSON() : sub;
+            const userSubRef = ref(database, `users/${currentUser.uid}/pushSubscription`);
+            await set(userSubRef, subJson);
+            console.debug('Saved push subscription to DB');
+        } catch (err) {
+            console.error('Failed to save subscription to DB', err);
+        }
+    }
+
+    async function removeSubscriptionFromDb() {
+        if (!currentUser) return;
+        try {
+            const userSubRef = ref(database, `users/${currentUser.uid}/pushSubscription`);
+            await remove(userSubRef);
+        } catch (err) {
+            console.error('Failed to remove subscription from DB', err);
+        }
+    }
+
+    async function subscribeToPush() {
+        try {
+            if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
+            if (!('PushManager' in window)) return alert('Push not supported in this browser');
+            if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.includes('<YOUR_PUBLIC_VAPID_KEY')) return alert('Missing VAPID public key. Generate VAPID keys and paste the public key in `chat.js`.');
+
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            await saveSubscriptionToDb(sub);
+            alert('Subscribed to push notifications');
+            updatePushUiState(true);
+        } catch (err) {
+            console.error('subscribeToPush error', err);
+            alert('Failed to subscribe to push: ' + (err && err.message));
+        }
+    }
+
+    async function unsubscribeFromPush() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const subscription = await reg.pushManager.getSubscription();
+            if (subscription) {
+                await subscription.unsubscribe();
+                await removeSubscriptionFromDb();
+            }
+            alert('Unsubscribed from push notifications');
+            updatePushUiState(false);
+        } catch (err) {
+            console.error('unsubscribeFromPush error', err);
+            alert('Failed to unsubscribe: ' + (err && err.message));
+        }
+    }
+
+    async function updatePushUiState(assumeSubscribed) {
+        try {
+            let subscribed = false;
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                const reg = await navigator.serviceWorker.ready;
+                const s = await reg.pushManager.getSubscription();
+                subscribed = !!s || !!assumeSubscribed;
+            }
+            pushToggle.checked = subscribed;
+            pushBtn.textContent = subscribed ? 'Unsubscribe' : 'Subscribe';
+        } catch (err) { console.debug('updatePushUiState error', err); }
+    }
+
+    pushBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!currentUser) return alert('Sign in to enable push notifications');
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) {
+                // Unsubscribe
+                await unsubscribeFromPush();
+            } else {
+                // Request notification permission first
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') return alert('You must allow notifications to subscribe');
+                await subscribeToPush();
+            }
+        } catch (err) { console.error('pushBtn click error', err); }
+    });
+
+    // initialize push UI state
+    try { updatePushUiState(false); } catch (e) {}
+
+    // Fullscreen button for phones
+    const fsRow = document.createElement('div');
+    fsRow.style.marginTop = '10px';
+    const fsBtn = document.createElement('button');
+    fsBtn.className = 'btn-settings';
+    fsBtn.textContent = 'Enter Fullscreen (mobile)';
+    fsRow.appendChild(fsBtn);
+    wrapper.appendChild(fsRow);
+
+    fsBtn.addEventListener('click', async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (err) { console.debug('fullscreen error', err); alert('Fullscreen request failed'); }
     });
 
     permissionBtn.addEventListener('click', async () => {

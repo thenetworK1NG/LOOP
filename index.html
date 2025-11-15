@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chaterly - Login</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="/icon.png" sizes="192x192">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#667eea">
 </head>
 <body>
@@ -66,7 +66,8 @@
         // Register service worker for PWA functionality and background notifications
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js').then(reg => {
+                // Register service worker relative to the current location so it scopes to the repo subpath when deployed to GitHub Pages
+                navigator.serviceWorker.register('service-worker.js').then(reg => {
                     console.log('Service worker registered.', reg);
                 }).catch(err => {
                     console.warn('Service worker registration failed:', err);

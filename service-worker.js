@@ -1,11 +1,12 @@
 const CACHE_NAME = 'chaterly-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/auth.js',
-  '/chat.js',
-  '/icon.png'
+  './',
+  './index.html',
+  './style.css',
+  './auth.js',
+  './chat.js',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,7 +31,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((resp) => {
       return resp || fetch(event.request).catch(() => {
         // Fallback to cached index.html for navigation requests
-        if (event.request.mode === 'navigate') return caches.match('/index.html');
+        if (event.request.mode === 'navigate') return caches.match('./index.html');
       });
     })
   );
