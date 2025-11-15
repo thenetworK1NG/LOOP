@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaterly - Setup Username</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Chaterly</h1>
+            <p class="subtitle">Choose your unique username</p>
+            
+            <form id="usernameForm" class="auth-form">
+                <h2>Set Your Username</h2>
+                <p class="info-text">This will be your display name in chat. Choose wisely - it must be unique!</p>
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Enter your username" 
+                        pattern="[a-zA-Z0-9_]{3,20}"
+                        title="Username must be 3-20 characters (letters, numbers, underscore only)"
+                        required
+                    >
+                    <small class="helper-text">3-20 characters, letters, numbers, and underscore only</small>
+                </div>
+                
+                <button type="submit" class="btn-primary">Continue</button>
+                <p class="error-message" id="usernameError"></p>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="setup-username.js"></script>
+</body>
+</html>

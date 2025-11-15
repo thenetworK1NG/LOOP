@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaterly - Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-content">
+                <button id="showContactsListBtn" class="btn-contacts-list" title="Contacts">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </button>
+                
+                <div class="header-profile" id="headerProfileBtn" style="cursor: pointer;">
+                    <div class="header-avatar" id="headerAvatar">
+                        <span id="headerAvatarInitial"></span>
+                    </div>
+                    <span id="userUsername"></span>
+                </div>
+                
+                <div class="header-settings">
+                    <button id="settingsBtn" class="btn-settings" title="Settings">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364 6.364l-4.243-4.243m-4.243 0L5.636 17.364m12.728 0l-4.243-4.243m-4.243 0L5.636 6.636"></path>
+                        </svg>
+                    </button>
+                    <div id="settingsMenu" class="settings-menu">
+                        <button id="customizeGradientBtn" class="settings-menu-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"></circle>
+                                <circle cx="17.5" cy="10.5" r=".5"></circle>
+                                <circle cx="8.5" cy="7.5" r=".5"></circle>
+                                <circle cx="6.5" cy="12.5" r=".5"></circle>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                            </svg>
+                            Customize Colors
+                        </button>
+                        <button id="logoutBtn" class="settings-menu-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main-area">
+            <!-- Full Screen Contacts List -->
+            <div class="fullscreen-contacts-list" id="fullscreenContactsList">
+                <div class="contacts-list-header">
+                    <button id="backFromContactsBtn" class="btn-back-contacts" title="Back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Contacts</h2>
+                    <button id="addNewContactBtn" class="btn-add-new-contact" title="Add contact">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="contacts-list-scroll" id="fullscreenContactsScroll">
+                    <p class="empty-message">No contacts yet</p>
+                </div>
+            </div>
+
+            <!-- Chat Content -->
+            <div class="chat-content">
+                <!-- Chats List View -->
+                <div class="chats-list-view" id="chatsListView">
+                    <div class="chats-list-container" id="chatsListContainer">
+                        <div class="no-chats-message">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <p>No messages yet</p>
+                            <button id="addContactsBtn" class="btn-primary">Add Contacts</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Chat -->
+                <div class="active-chat" id="activeChat" style="display: none;">
+                    <!-- Chat Header -->
+                    <div class="active-chat-header">
+                        <div class="chat-user-info">
+                            <button id="backToContactsBtn" class="btn-back-mobile" title="Back to contacts">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <div class="avatar" id="activeChatAvatar">
+                                <span id="activeChatInitial"></span>
+                            </div>
+                            <div>
+                                <h3 id="activeChatUsername"></h3>
+                                <p id="activeChatStatus" class="active-chat-status"><span id="activeChatStatusDot" class="status-dot"></span><span id="activeChatStatusText" class="status-text">Last seen: --</span></p>
+                                <p id="typingIndicator" class="typing-indicator" style="display:none">typing<span class="dots">...</span></p>
+                            </div>
+                        </div>
+                        <button id="clearChatBtn" class="btn-clear-chat" title="Clear chat history">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Clear Chat
+                        </button>
+                    </div>
+
+                    <!-- Messages Area -->
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="messages-list" id="messagesList">
+                            <!-- Messages will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="message-input-container">
+                        <form id="messageForm" class="message-form">
+                            <input 
+                                type="file" 
+                                id="imageInput" 
+                                accept="image/*" 
+                                capture="environment"
+                                style="display: none;"
+                            >
+                            <button type="button" id="imageBtn" class="btn-image" title="Send image">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" id="cameraBtn" class="btn-camera" title="Open camera">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="3"></circle>
+                                </svg>
+                            </button>
+                            <input 
+                                type="text" 
+                                id="messageInput" 
+                                placeholder="Type your message..." 
+                                autocomplete="off"
+                            >
+                            <button type="submit" class="btn-send">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </form>
+                        <div id="imagePreview" class="image-preview" style="display: none;">
+                            <div class="preview-container">
+                                <img id="previewImage" src="" alt="Preview">
+                                <button type="button" id="cancelImageBtn" class="btn-cancel-image">×</button>
+                            </div>
+                            <button type="button" id="sendImageBtn" class="btn-send-image">Send Image</button>
+                        </div>
+                        <div id="uploadProgress" class="upload-progress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                                <span class="progress-plane" aria-hidden="true"></span>
+                            </div>
+                            <span class="progress-text">Sending...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Picture Modal -->
+    <div id="profilePictureModal" class="profile-modal" style="display: none;">
+        <div class="profile-modal-content">
+            <h2>Profile Settings</h2>
+            <div class="profile-picture-preview">
+                <div class="current-avatar" id="currentProfileAvatar">
+                    <span id="currentProfileInitial"></span>
+                </div>
+            </div>
+            <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+            <button id="selectProfilePictureBtn" class="btn-primary">Change Profile Picture</button>
+            <div id="profileImagePreview" class="profile-image-preview" style="display: none;">
+                <img id="profilePreviewImage" src="" alt="Preview">
+                <button id="uploadProfilePictureBtn" class="btn-primary">Upload</button>
+            </div>
+            <button id="closeProfileModalBtn" class="btn-secondary">Cancel</button>
+            <div id="profileUploadProgress" class="upload-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <span class="progress-text">Uploading profile picture...</span>
+            </div>
+            <button id="logoutBtnModal" class="btn-danger">Logout</button>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal" style="display: none;">
+        <div class="camera-modal-content">
+            <video id="cameraVideo" autoplay playsinline></video>
+            <canvas id="cameraCanvas" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button id="capturePhotoBtn" class="btn-primary">Capture</button>
+                <button id="flipCameraBtn" class="btn-secondary">Flip</button>
+                <button id="closeCameraBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gradient Customization Modal -->
+    <div id="gradientModal" class="profile-modal" style="display: none;">
+        <div class="gradient-modal-content">
+            <h2>Customize Colors</h2>
+            <p class="gradient-description">Choose your favorite color theme</p>
+            
+            <div class="gradient-presets">
+                <div class="gradient-preset" data-gradient="667eea,764ba2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <span class="gradient-name">Purple Dream</span>
+                </div>
+                <div class="gradient-preset" data-gradient="f093fb,f5576c" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <span class="gradient-name">Pink Passion</span>
+                </div>
+                <div class="gradient-preset" data-gradient="4facfe,00f2fe" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <span class="gradient-name">Ocean Blue</span>
+                </div>
+                <div class="gradient-preset" data-gradient="43e97b,38f9d7" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <span class="gradient-name">Mint Fresh</span>
+                </div>
+                <div class="gradient-preset" data-gradient="fa709a,fee140" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <span class="gradient-name">Sunset Glow</span>
+                </div>
+                <div class="gradient-preset" data-gradient="30cfd0,330867" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                    <span class="gradient-name">Deep Ocean</span>
+                </div>
+                <div class="gradient-preset" data-gradient="a8edea,fed6e3" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                    <span class="gradient-name">Cotton Candy</span>
+                </div>
+                <div class="gradient-preset" data-gradient="ff9a56,ff6a88" style="background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);">
+                    <span class="gradient-name">Warm Coral</span>
+                </div>
+                <div class="gradient-preset" data-gradient="ffecd2,fcb69f" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+                    <span class="gradient-name">Peach Cream</span>
+                </div>
+                <div class="gradient-preset" data-gradient="ff0844,ffb199" style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);">
+                    <span class="gradient-name">Hot Pink</span>
+                </div>
+                <div class="gradient-preset" data-gradient="08aeea,2af598" style="background: linear-gradient(135deg, #08aeea 0%, #2af598 100%);">
+                    <span class="gradient-name">Tropical</span>
+                </div>
+                <div class="gradient-preset" data-gradient="ebbba7,cfc7f8" style="background: linear-gradient(135deg, #ebbba7 0%, #cfc7f8 100%);">
+                    <span class="gradient-name">Lavender Dream</span>
+                </div>
+            </div>
+
+            <div class="custom-gradient-section">
+                <h3>Or Create Your Own</h3>
+                <div class="color-inputs">
+                    <div class="color-input-group">
+                        <label for="color1">Start Color</label>
+                        <input type="color" id="color1" value="#667eea">
+                    </div>
+                    <div class="color-input-group">
+                        <label for="color2">End Color</label>
+                        <input type="color" id="color2" value="#764ba2">
+                    </div>
+                </div>
+                <div class="gradient-preview" id="gradientPreview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <span>Preview</span>
+                </div>
+                <button id="applyCustomGradientBtn" class="btn-primary">Apply Custom Colors</button>
+            </div>
+
+            <button id="closeGradientModalBtn" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+
+    <script type="module" src="chat.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js').then(reg => {
+                console.log('Service worker registered from chat.html', reg);
+            }).catch(err => { console.warn('SW register failed', err); });
+
+            navigator.serviceWorker.addEventListener('message', (evt) => {
+                try {
+                    const msg = evt.data;
+                    if (msg && msg.type === 'open-chat' && msg.data) {
+                        window.dispatchEvent(new CustomEvent('sw-open-chat', { detail: msg.data }));
+                    }
+                } catch (e) { console.debug('SW message handler error', e); }
+            });
+        }
+    </script>
+</body>
+</html>

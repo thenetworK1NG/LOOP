@@ -1,0 +1,53 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      ".indexOn": ["username"],
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "$userId === auth.uid",
+        "profilePicture": {
+          ".read": "auth != null",
+          ".write": "$userId === auth.uid"
+        }
+      }
+    },
+    "friends": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "auth != null",
+        "$friendId": {
+          ".read": "$userId === auth.uid",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "friendRequests": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "auth != null",
+        "$requestId": {
+          ".read": "$userId === auth.uid || $requestId === auth.uid",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "chatRooms": {
+      "$chatRoomId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "messages": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          "$messageId": {
+            ".write": "auth != null && (
+                (!data.exists() && newData.exists() && newData.child('senderId').val() === auth.uid) ||
+                (data.exists() && !newData.exists() && data.child('senderId').val() === auth.uid) ||
+                (data.exists() && newData.exists() && data.child('senderId').val() === auth.uid)
+            )"
+          }
+        }
+      }
+    }
+  }
+}
