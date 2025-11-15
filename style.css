@@ -161,6 +161,35 @@ img, video {
     }
 }
 
+/* Mobile fullscreen helper: when body has `.mobile-fullscreen` the chat UI fills the viewport
+   and uses safe-area insets for devices with notches. Toggling this class gives a full-bleed look. */
+body.mobile-fullscreen {
+    height: 100%;
+}
+
+body.mobile-fullscreen .chat-container,
+body.mobile-fullscreen .fullscreen-contacts-list {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    z-index: 9999;
+}
+
+body.mobile-fullscreen .header-content {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+body.mobile-fullscreen .message-input-container {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Small utility: hide any body-centered layout effect when fullscreen is on */
+body.mobile-fullscreen {
+    display: block;
+}
+
 /* Authentication Styles */
 .auth-container {
     width: 100%;

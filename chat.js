@@ -266,6 +266,66 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Fullscreen toggle for mobile: tries Fullscreen API and applies a CSS class
+function isInFullScreenMode() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+}
+
+function applyMobileFullscreenClass(enable) {
+    if (enable) {
+        document.body.classList.add('mobile-fullscreen');
+    } else {
+        document.body.classList.remove('mobile-fullscreen');
+    }
+}
+
+async function toggleFullscreen() {
+    const enabled = document.body.classList.contains('mobile-fullscreen');
+    if (!enabled) {
+        // Add CSS class first so layout snaps to full-bleed immediately
+        applyMobileFullscreenClass(true);
+        // Try request fullscreen (user gesture required) — may be blocked on some mobile browsers
+        try {
+            if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+            else if (document.documentElement.webkitRequestFullscreen) await document.documentElement.webkitRequestFullscreen();
+        } catch (err) {
+            // ignore — class still applied
+            console.debug('Fullscreen API request failed:', err);
+        }
+        localStorage.setItem('mobileFullscreenEnabled', '1');
+    } else {
+        // Exit fullscreen and remove CSS class
+        try {
+            if (document.exitFullscreen) await document.exitFullscreen();
+            else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+        } catch (err) {
+            console.debug('Exit fullscreen failed:', err);
+        }
+        applyMobileFullscreenClass(false);
+        localStorage.removeItem('mobileFullscreenEnabled');
+    }
+}
+
+// Hook up the toggle button
+const toggleFsBtn = document.getElementById('toggleFullscreenBtn');
+if (toggleFsBtn) {
+    toggleFsBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        // close settings menu so it doesn't float while fullscreening
+        const menu = document.getElementById('settingsMenu');
+        if (menu) menu.classList.remove('show');
+        const btn = document.getElementById('settingsBtn');
+        if (btn) btn.classList.remove('active');
+
+        await toggleFullscreen();
+    });
+}
+
+// Apply stored preference (CSS class only) — we don't auto-request fullscreen without a user gesture
+if (localStorage.getItem('mobileFullscreenEnabled')) {
+    applyMobileFullscreenClass(true);
+}
+
 // Load saved gradient
 function loadSavedGradient() {
     const savedGradient = localStorage.getItem('userGradient');
