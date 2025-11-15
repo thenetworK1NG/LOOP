@@ -42,10 +42,6 @@ let isTypingLocal = false; // local state if user is typing
 // Incoming message audio (expects `newinchat.mp3` at app root). Preload for immediate play.
 let incomingAudio = null;
 
-// VAPID public key for Push API (provided by user)
-// Generated externally. This public key pairs with the server private key below (kept secret server-side).
-const VAPID_PUBLIC_KEY = 'BOvlFaMCX3DrMrF0KnoafL8ZcEhSxvfCk_lrlIHG8OsDv2K5VKHs7G9XQhZx0mhtMI2gkGogwzbMbiT0UnDL3LI'; // base64-url string
-
 // Notification sound settings are persisted in localStorage under:
 // - 'notifSoundChoice' => 'mute' | 'default' | 'custom'
 // - 'notifSoundCustom' => data URL of chosen custom audio (optional)
@@ -126,23 +122,6 @@ function setupNotificationSettingsUI() {
         <div style="margin-top:8px;">
             <span id="notifFileName"></span>
         </div>
-        <div style="margin-top:10px; border-top:1px solid rgba(15,23,36,0.04); padding-top:10px;">
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="notifDesktopToggle">
-                <div style="display:flex; flex-direction:column;">
-                    <div style="font-weight:700;">Desktop notifications</div>
-                    <div style="font-size:0.85rem; color:#5b6470;">Show OS-level notifications when the app is not focused</div>
-                </div>
-            </label>
-            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                <button id="requestNotifPermissionBtn" class="btn-settings" style="display:none;">Enable desktop notifications</button>
-                <button id="testNotifBtn" class="btn-settings">Send test notification</button>
-                <button id="installAppBtn" class="btn-settings" style="display:none;">Install app</button>
-            </div>
-            <div style="margin-top:8px; color:#6b7280; font-size:0.88rem;">
-                Note: The browser and OS control the top-line branding and origin shown on notifications. To have notifications appear with your app's icon/name instead of the browser, install this app as a PWA (use the "Install app" button if available).
-            </div>
-        </div>
     `;
 
     menu.appendChild(wrapper);
@@ -181,275 +160,6 @@ function setupNotificationSettingsUI() {
     if (customData && fileNameSpan) {
         fileNameSpan.textContent = 'Custom sound selected';
     }
-
-    // Desktop notifications toggle
-    const desktopToggle = wrapper.querySelector('#notifDesktopToggle');
-    const permissionBtn = wrapper.querySelector('#requestNotifPermissionBtn');
-    const testBtn = wrapper.querySelector('#testNotifBtn');
-    const installBtn = wrapper.querySelector('#installAppBtn');
-    function loadDesktopToggle() {
-        const enabled = localStorage.getItem('notifDesktopEnabled') === 'true';
-        // If browser already granted permission, prefer enabling desktop notifications by default
-        const permGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
-        if (permGranted && localStorage.getItem('notifDesktopEnabled') !== 'true') {
-            localStorage.setItem('notifDesktopEnabled', 'true');
-        }
-        const finalEnabled = permGranted || enabled;
-        desktopToggle.checked = !!finalEnabled;
-        // Show request button if user checked but permission not granted
-        if (desktopToggle.checked && (typeof Notification !== 'undefined') && Notification.permission !== 'granted') {
-            permissionBtn.style.display = 'inline-block';
-        } else {
-            permissionBtn.style.display = 'none';
-        }
-    }
-    loadDesktopToggle();
-
-    desktopToggle.addEventListener('change', (e) => {
-        const en = !!e.target.checked;
-        localStorage.setItem('notifDesktopEnabled', en ? 'true' : 'false');
-        if (en) {
-            // If enabling, request permission if not already granted/denied
-            if (typeof Notification === 'undefined') {
-                alert('Notifications are not available in this browser.');
-                permissionBtn.style.display = 'none';
-            } else if (Notification.permission === 'granted') {
-                permissionBtn.style.display = 'none';
-            } else if (Notification.permission === 'denied') {
-                alert('Notifications are blocked in your browser settings. Please enable them to receive desktop notifications.');
-                permissionBtn.style.display = 'none';
-            } else {
-                // permission === 'default' -> request immediately for convenience
-                try {
-                    Notification.requestPermission().then(perm => {
-                        if (perm === 'granted') {
-                            permissionBtn.style.display = 'none';
-                            alert('Desktop notifications enabled');
-                        } else if (perm === 'denied') {
-                            alert('Notifications blocked. You can re-enable them in your browser settings.');
-                        }
-                    }).catch(err => { console.debug('requestPermission error', err); });
-                } catch (err) {
-                    console.debug('requestPermission threw', err);
-                }
-            }
-        } else {
-            permissionBtn.style.display = 'none';
-        }
-    });
-
-    // Push subscription controls (background notifications when app closed)
-    // Add a checkbox and subscribe/unsubscribe button
-    let pushControlRow = document.createElement('div');
-    pushControlRow.style.marginTop = '10px';
-    pushControlRow.style.display = 'flex';
-    pushControlRow.style.gap = '8px';
-    pushControlRow.style.alignItems = 'center';
-
-    const pushLabel = document.createElement('label');
-    pushLabel.style.display = 'flex';
-    pushLabel.style.alignItems = 'center';
-    pushLabel.style.gap = '8px';
-    pushLabel.style.cursor = 'pointer';
-    pushLabel.innerHTML = '<input type="checkbox" id="notifPushToggle"> <div style="display:flex; flex-direction:column;"><div style="font-weight:700;">Background push (works when app closed)</div><div style="font-size:0.85rem; color:#5b6470;">Requires a server to send push messages (VAPID)</div></div>';
-    pushControlRow.appendChild(pushLabel);
-
-    const pushBtn = document.createElement('button');
-    pushBtn.className = 'btn-settings';
-    pushBtn.id = 'notifPushBtn';
-    pushBtn.textContent = 'Subscribe';
-    pushControlRow.appendChild(pushBtn);
-
-    wrapper.appendChild(pushControlRow);
-
-    const pushToggle = wrapper.querySelector('#notifPushToggle');
-
-    // Helper: convert base64 public key to Uint8Array
-    function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    }
-
-    // Save subscription to Firebase under users/<uid>/pushSubscription
-    async function saveSubscriptionToDb(sub) {
-        if (!currentUser || !sub) return;
-        try {
-            const subJson = sub.toJSON ? sub.toJSON() : sub;
-            const userSubRef = ref(database, `users/${currentUser.uid}/pushSubscription`);
-            await set(userSubRef, subJson);
-            console.debug('Saved push subscription to DB');
-        } catch (err) {
-            console.error('Failed to save subscription to DB', err);
-        }
-    }
-
-    async function removeSubscriptionFromDb() {
-        if (!currentUser) return;
-        try {
-            const userSubRef = ref(database, `users/${currentUser.uid}/pushSubscription`);
-            await remove(userSubRef);
-        } catch (err) {
-            console.error('Failed to remove subscription from DB', err);
-        }
-    }
-
-    async function subscribeToPush() {
-        try {
-            if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
-            if (!('PushManager' in window)) return alert('Push not supported in this browser');
-            if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.includes('<YOUR_PUBLIC_VAPID_KEY')) return alert('Missing VAPID public key. Generate VAPID keys and paste the public key in `chat.js`.');
-
-            const reg = await navigator.serviceWorker.ready;
-            const sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-            await saveSubscriptionToDb(sub);
-            alert('Subscribed to push notifications');
-            updatePushUiState(true);
-        } catch (err) {
-            console.error('subscribeToPush error', err);
-            alert('Failed to subscribe to push: ' + (err && err.message));
-        }
-    }
-
-    async function unsubscribeFromPush() {
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            const subscription = await reg.pushManager.getSubscription();
-            if (subscription) {
-                await subscription.unsubscribe();
-                await removeSubscriptionFromDb();
-            }
-            alert('Unsubscribed from push notifications');
-            updatePushUiState(false);
-        } catch (err) {
-            console.error('unsubscribeFromPush error', err);
-            alert('Failed to unsubscribe: ' + (err && err.message));
-        }
-    }
-
-    async function updatePushUiState(assumeSubscribed) {
-        try {
-            let subscribed = false;
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                const reg = await navigator.serviceWorker.ready;
-                const s = await reg.pushManager.getSubscription();
-                subscribed = !!s || !!assumeSubscribed;
-            }
-            pushToggle.checked = subscribed;
-            pushBtn.textContent = subscribed ? 'Unsubscribe' : 'Subscribe';
-        } catch (err) { console.debug('updatePushUiState error', err); }
-    }
-
-    pushBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (!currentUser) return alert('Sign in to enable push notifications');
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            const existing = await reg.pushManager.getSubscription();
-            if (existing) {
-                // Unsubscribe
-                await unsubscribeFromPush();
-            } else {
-                // Request notification permission first
-                const perm = await Notification.requestPermission();
-                if (perm !== 'granted') return alert('You must allow notifications to subscribe');
-                await subscribeToPush();
-            }
-        } catch (err) { console.error('pushBtn click error', err); }
-    });
-
-    // initialize push UI state
-    try { updatePushUiState(false); } catch (e) {}
-
-    // Fullscreen button for phones
-    const fsRow = document.createElement('div');
-    fsRow.style.marginTop = '10px';
-    const fsBtn = document.createElement('button');
-    fsBtn.className = 'btn-settings';
-    fsBtn.textContent = 'Enter Fullscreen (mobile)';
-    fsRow.appendChild(fsBtn);
-    wrapper.appendChild(fsRow);
-
-    fsBtn.addEventListener('click', async () => {
-        try {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-            } else {
-                await document.documentElement.requestFullscreen();
-            }
-        } catch (err) { console.debug('fullscreen error', err); alert('Fullscreen request failed'); }
-    });
-
-    permissionBtn.addEventListener('click', async () => {
-        try {
-            if (typeof Notification === 'undefined') return alert('Notifications are not available in this browser');
-            const perm = await Notification.requestPermission();
-            if (perm === 'granted') {
-                permissionBtn.style.display = 'none';
-                alert('Desktop notifications enabled');
-            } else if (perm === 'denied') {
-                alert('Notifications blocked. You can re-enable them in your browser settings.');
-            }
-        } catch (err) {
-            console.debug('Notification permission error', err);
-        }
-    });
-
-    // Test notification button: sends a sample notification to preview appearance
-    testBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        try {
-            if (typeof Notification === 'undefined') return alert('Notifications not available in this browser');
-            if (Notification.permission !== 'granted') {
-                Notification.requestPermission().then(perm => {
-                    if (perm === 'granted') {
-                        // show a test notif
-                        const sample = { text: 'This is a test notification', sender: currentUsername || 'Test', type: 'text' };
-                        showDesktopNotification(sample, currentUser && currentUser.uid);
-                    } else {
-                        alert('Permission not granted');
-                    }
-                });
-            } else {
-                const sample = { text: 'This is a test notification', sender: currentUsername || 'Test', type: 'text' };
-                showDesktopNotification(sample, currentUser && currentUser.uid);
-            }
-        } catch (err) { console.debug('test notification error', err); alert('Failed to show test notification'); }
-    });
-
-    // Support for prompting PWA installation (beforeinstallprompt)
-    let deferredInstallPrompt = null;
-    window.addEventListener('beforeinstallprompt', (evt) => {
-        // Prevent the mini-infobar from appearing on mobile
-        evt.preventDefault();
-        deferredInstallPrompt = evt;
-        // show install button in settings
-        try { installBtn.style.display = 'inline-block'; } catch (e) {}
-    });
-
-    installBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (!deferredInstallPrompt) {
-            alert('Install prompt not available. You can install from your browser menu.');
-            return;
-        }
-        deferredInstallPrompt.prompt();
-        const choiceResult = await deferredInstallPrompt.userChoice;
-        if (choiceResult.outcome === 'accepted') {
-            installBtn.style.display = 'none';
-            deferredInstallPrompt = null;
-        } else {
-            // user dismissed
-        }
-    });
 
     radios.forEach(r => r.addEventListener('change', (e) => {
         const val = e.target.value;
@@ -1021,22 +731,8 @@ function handleNewMessageForFriend(friendId, message, messageId) {
                 }
             } catch (err) { console.debug('play audio error', err); }
 
-            // Show on-screen toast notification
+            // Show on-screen notification
             showNewMessageNotification(message, friendId);
-
-            // Show OS-level desktop notification when the page is not visible or window not focused
-            try {
-                    // Log and attempt desktop notification when allowed. Some environments (file://) or insecure origins block this.
-                    console.debug('handleNewMessageForFriend: visibility=', document.visibilityState, 'hasFocus=', document.hasFocus());
-                    if (isDesktopNotificationsEnabled() && (document.visibilityState !== 'visible' || !document.hasFocus())) {
-                        showDesktopNotification(message, friendId);
-                    } else {
-                        // If user explicitly enabled desktop notifications and permissions are granted, still allow when visible
-                        if (isDesktopNotificationsEnabled() && typeof Notification !== 'undefined' && Notification.permission === 'granted' && (document.visibilityState === 'visible' && !document.hasFocus())) {
-                            showDesktopNotification(message, friendId);
-                        }
-                    }
-            } catch (err) { console.debug('desktop notification error', err); }
         }
 
         // Optionally refresh chats list ordering or highlight — keep UI live by updating main list
@@ -1888,16 +1584,6 @@ function displayMessage(message, messageId, options = {}) {
                 console.debug('Error handling incoming audio:', err);
             }
 
-            // If the user isn't looking at the page (or window not focused), show a desktop notification
-            try {
-                if (!isOwnMessage && isDesktopNotificationsEnabled() && (document.visibilityState !== 'visible' || !document.hasFocus())) {
-                    // active chat still could trigger an OS notification if the user switched tabs
-                    showDesktopNotification(message, activeChat && activeChat.id);
-                }
-            } catch (err) {
-                console.debug('desktop notif (active chat) error', err);
-            }
-
             // Only animate incoming messages when they are truly new (not part of initial load)
             requestAnimationFrame(() => {
                 messageDiv.classList.add('attention-incoming');
@@ -2023,65 +1709,6 @@ function showNewMessageNotification(message, friendId) {
 
     } catch (err) {
         console.debug('Error showing notification:', err);
-    }
-}
-
-// Desktop notification helpers
-function isDesktopNotificationsEnabled() {
-    return localStorage.getItem('notifDesktopEnabled') === 'true';
-}
-
-async function showDesktopNotification(message, friendId) {
-    try {
-        console.debug('Attempting desktop notification for', friendId, 'perm=', (typeof Notification !== 'undefined' ? Notification.permission : 'n/a'));
-        if (typeof Notification === 'undefined') return;
-        if (!isDesktopNotificationsEnabled()) return;
-        if (Notification.permission !== 'granted') return;
-
-        const friend = friendsList[friendId] || {};
-        const title = `@${friend.username || message.sender || 'New message'}`;
-        let body = '';
-        if (message.type === 'image') body = 'Sent an image';
-        else body = message.text || '';
-
-        // Prefer using the friend's profile picture as the notification icon.
-        // For image messages, include the message image where supported.
-        const icon = (friend.profilePicture) ? friend.profilePicture : undefined;
-        const image = (message.type === 'image' && message.imageUrl) ? message.imageUrl : undefined;
-        const chatRoomId = [currentUser && currentUser.uid, friendId].filter(Boolean).sort().join('_') || undefined;
-
-        // Small transparent badge to reduce default platform badge/logo prominence where supported.
-        const transparentBadge = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAnsB9m3v4OgAAAAASUVORK5CYII=';
-
-        const notifOptions = {
-            body: body,
-            icon: icon,
-            image: image,
-            badge: transparentBadge,
-            tag: chatRoomId || undefined,
-            renotify: true,
-            silent: false,
-            data: { chatRoomId, friendId }
-        };
-
-        const notif = new Notification(title, notifOptions);
-
-        notif.onclick = (e) => {
-            try {
-                // Focus the window/tab and open the chat
-                if (window.focus) window.focus();
-                if (typeof selectContact === 'function') {
-                    const friend = friendsList[friendId];
-                    if (friend) selectContact(friendId, friend);
-                }
-                notif.close && notif.close();
-            } catch (err) { console.debug('Notification click handler error', err); }
-        };
-
-        // Auto-close after 10s to avoid lingering notifications
-        setTimeout(() => { try { notif.close && notif.close(); } catch (e) {} }, 10000);
-    } catch (err) {
-        console.debug('Error showing desktop notification', err);
     }
 }
 
@@ -2335,23 +1962,3 @@ document.addEventListener('DOMContentLoaded', () => {
     try { setupNotificationSettingsUI(); } catch (e) { /* ignore */ }
     try { applyNotificationSoundSetting(); } catch (e) { /* ignore */ }
 });
-
-// Listen for messages from the service worker (e.g., notificationclick forwarding)
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (ev) => {
-        try {
-            const data = ev.data || {};
-            if (data && data.action === 'openChat' && data.friendId) {
-                const fid = data.friendId;
-                const friend = friendsList[fid];
-                if (friend) {
-                    selectContact(fid, friend);
-                } else {
-                    // If we don't have the friend cached yet, attempt to fetch minimal data
-                    // (This is best-effort; app will still focus and user can select contact manually)
-                    console.debug('SW asked to open chat for unknown friendId', fid);
-                }
-            }
-        } catch (err) { console.debug('serviceWorker message handler error', err); }
-    });
-}

@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chaterly - Chat</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#667eea">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
     <div class="chat-container">
@@ -298,21 +295,5 @@
     </div>
 
     <script type="module" src="chat.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js').then(reg => {
-                console.log('Service worker registered from chat.html', reg);
-            }).catch(err => { console.warn('SW register failed', err); });
-
-            navigator.serviceWorker.addEventListener('message', (evt) => {
-                try {
-                    const msg = evt.data;
-                    if (msg && msg.type === 'open-chat' && msg.data) {
-                        window.dispatchEvent(new CustomEvent('sw-open-chat', { detail: msg.data }));
-                    }
-                } catch (e) { console.debug('SW message handler error', e); }
-            });
-        }
-    </script>
 </body>
 </html>

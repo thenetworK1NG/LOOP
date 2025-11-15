@@ -23,6 +23,10 @@
     box-sizing: border-box;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: var(--primary-gradient);
@@ -30,6 +34,131 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Responsive helpers (keeps layout fluid on small screens) */
+.container,
+.auth-container,
+.chat-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+img, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Make message input area flexible */
+.message-input-container .message-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+.message-input-container .message-form input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 0; /* prevents overflow in flex */
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    font-size: 1rem;
+}
+
+/* Ensure tappable controls meet touch guidelines */
+.btn-primary,
+.btn-send,
+.btn-image,
+.btn-camera,
+.btn-settings,
+.btn-back-contacts,
+.btn-back-mobile,
+.btn-contacts-list {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+}
+
+/* Modals and dialogs should scale on small screens */
+.profile-modal-content,
+.camera-modal-content,
+.gradient-modal-content {
+    width: calc(100% - 40px);
+    max-width: 520px;
+    margin: 20px auto;
+    box-sizing: border-box;
+}
+
+/* Stick message input to bottom on narrow screens */
+.message-input-container {
+    background: #fff;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 900px) {
+    .header-content {
+        padding: 0 16px;
+    }
+    .auth-box {
+        padding: 28px;
+    }
+}
+
+@media (max-width: 600px) {
+    .auth-container {
+        padding: 16px;
+    }
+    .auth-box {
+        padding: 20px;
+        border-radius: 14px;
+    }
+    .auth-box h1 {
+        font-size: 2rem;
+    }
+    .header-content {
+        padding: 0 12px;
+        gap: 8px;
+    }
+    .header-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    .header-profile span,
+    .header-user-section span {
+        display: none; /* conserve horizontal space on small phones */
+    }
+    .chat-main-area {
+        flex-direction: column;
+    }
+    .chats-list-view,
+    .active-chat {
+        width: 100%;
+    }
+    .messages-container {
+        padding: 8px 10px;
+    }
+    .message-input-container .message-form input[type="text"] {
+        padding: 10px;
+        font-size: 0.98rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .auth-box {
+        padding: 14px;
+    }
+    .auth-box h1 {
+        font-size: 1.6rem;
+    }
+    .btn-primary {
+        padding: 12px;
+        font-size: 0.95rem;
+    }
 }
 
 /* Authentication Styles */
